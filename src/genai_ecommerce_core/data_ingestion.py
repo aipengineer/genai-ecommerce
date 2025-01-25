@@ -1,14 +1,17 @@
+# genai-ecommerce/src/genai_ecommerce_core/data_ingestion.py
 import asyncio
 from contextlib import asynccontextmanager
-
-from sqlalchemy.orm import Session
+from pathlib import Path
 
 from genai_ecommerce_core.client import AboutYouClient, download_image_with_retries
 from genai_ecommerce_core.database import bulk_insert_products, init_db
 
 
 @asynccontextmanager
-async def get_db():
+async def get_db() -> None:
+    """
+    Async context manager to initialize and close the database session.
+    """
     db = await init_db("sqlite:///ecommerce.db")
     try:
         yield db
@@ -16,7 +19,10 @@ async def get_db():
         db.close()
 
 
-async def ingest_data():
+async def ingest_data() -> None:
+    """
+    Fetch data from AboutYou API and store it in the database.
+    """
     async with get_db() as db:
         client = AboutYouClient()
         page = 1
@@ -32,9 +38,11 @@ async def ingest_data():
                 products = []
                 for product in response.entities:
                     if not product.get("categories") or not product["categories"][0]:
-                        print(
-                            f"Skipping product {product['id']} due to missing categories."
+                        msg = (
+                            f"Skipping product {product['id']}"
+                            f" due to missing categories."
                         )
+                        print(msg)
                         continue
 
                     product_data = {
@@ -52,8 +60,11 @@ async def ingest_data():
                     if product.get("images"):
                         for image in product["images"]:
                             image_url = f"https://cdn.aboutyou.com/{image['hash']}"
-                            local_image_path = f"data/images/{product_data['category']}/{image['hash'].split('/')[-1]}"
-                            if not os.path.exists(local_image_path):
+                            local_image_path = (
+                                f"data/images/{product_data['category']}/"
+                                f"{image['hash'].split('/')[-1]}"
+                            )
+                            if not Path(local_image_path).exists():
                                 await download_image_with_retries(
                                     image_url, local_image_path
                                 )

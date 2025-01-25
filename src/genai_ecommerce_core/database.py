@@ -2,7 +2,6 @@
 """Database models and utilities for the GenAI E-commerce project."""
 
 from datetime import datetime
-from typing import Optional
 
 from sqlalchemy import (
     JSON,

@@ -1,6 +1,5 @@
+# genai-ecommerce/src/genai_ecommerce_ml/clustering.py
 """Clustering-based recommender system."""
-
-from typing import Any, Dict, List
 
 import joblib
 import numpy as np
@@ -15,14 +14,14 @@ from .base import BaseRecommender
 class ClusteringRecommender(BaseRecommender):
     """Product recommender using K-means clustering."""
 
-    def __init__(self, n_clusters: int = 10):
+    def __init__(self, n_clusters: int = 10) -> None:
         self.n_clusters = n_clusters
         self.kmeans = KMeans(n_clusters=n_clusters)
         self.scaler = StandardScaler()
-        self.products: List[Product] = []
+        self.products: list[Product] = []
         self.features: np.ndarray = None
 
-    def _extract_features(self, product: Product) -> List[float]:
+    def _extract_features(self, product: Product) -> list[float]:
         """Extract numerical features from product."""
         features = [
             product.price.amount,
@@ -37,7 +36,7 @@ class ClusteringRecommender(BaseRecommender):
             features.append(0.0)
         return features
 
-    async def fit(self, products: List[Product]) -> None:
+    async def fit(self, products: list[Product]) -> None:
         """Train the clustering model."""
         self.products = products
         features = [self._extract_features(p) for p in products]
@@ -46,7 +45,7 @@ class ClusteringRecommender(BaseRecommender):
 
     async def recommend(
         self, product: Product, n_recommendations: int = 5
-    ) -> List[Product]:
+    ) -> list[Product]:
         """Get recommendations based on cluster membership."""
         features = self._extract_features(product)
         scaled_features = self.scaler.transform([features])
