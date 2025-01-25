@@ -16,7 +16,9 @@ class BaseRecommender(ABC):
         pass
 
     @abstractmethod
-    async def recommend(self, product: Product, n_recommendations: int = 5) -> List[Product]:
+    async def recommend(
+        self, product: Product, n_recommendations: int = 5
+    ) -> List[Product]:
         """Get recommendations for a product."""
         pass
 

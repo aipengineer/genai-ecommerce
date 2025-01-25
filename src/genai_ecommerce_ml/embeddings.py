@@ -25,7 +25,7 @@ class EmbeddingRecommender(BaseRecommender):
             product.description or "",
             product.brand or "",
             *[attr.value for attr in product.attributes],
-            *[cat.name for cat in product.categories]
+            *[cat.name for cat in product.categories],
         ]
         return " ".join(text_parts)
 
@@ -35,36 +35,38 @@ class EmbeddingRecommender(BaseRecommender):
         texts = [self._get_product_text(p) for p in products]
         self.embeddings = self.text_model.encode(texts, convert_to_tensor=True)
 
-    async def recommend(self, product: Product, n_recommendations: int = 5) -> List[Product]:
+    async def recommend(
+        self, product: Product, n_recommendations: int = 5
+    ) -> List[Product]:
         """Get recommendations based on embedding similarity."""
         text = self._get_product_text(product)
         query_embedding = self.text_model.encode([text], convert_to_tensor=True)
-        
+
         # Calculate similarities
         similarities = cosine_similarity(query_embedding, self.embeddings)[0]
-        
+
         # Get top similar products
         similar_indices = np.argsort(similarities)[::-1]
         recommendations = []
-        
+
         for idx in similar_indices:
             if self.products[idx].id != product.id:
                 recommendations.append(self.products[idx])
                 if len(recommendations) >= n_recommendations:
                     break
-        
+
         return recommendations
 
     async def save(self, path: str) -> None:
         """Save model to disk."""
         model_data = {
-            'products': [p.model_dump() for p in self.products],
-            'embeddings': self.embeddings.cpu().numpy()
+            "products": [p.model_dump() for p in self.products],
+            "embeddings": self.embeddings.cpu().numpy(),
         }
         joblib.dump(model_data, path)
 
     async def load(self, path: str) -> None:
         """Load model from disk."""
         model_data = joblib.load(path)
-        self.products = [Product.model_validate(p) for p in model_data['products']]
-        self.embeddings = model_data['embeddings']
+        self.products = [Product.model_validate(p) for p in model_data["products"]]
+        self.embeddings = model_data["embeddings"]

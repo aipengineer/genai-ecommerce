@@ -8,11 +8,13 @@ version = "0.1.0"
 description = "GenAI E-commerce project with ML-powered recommendations"
 requires-python = ">=3.12,<3.13"
 
-dependencies = [
-    "genai_ecommerce_core",
-    "genai_ecommerce_web",
-    "genai_ecommerce_ml",
+[tool.hatch.build.targets.wheel]
+packages = [
+    "src/genai_ecommerce_core",
+    "src/genai_ecommerce_ml",
+    "src/genai_ecommerce_web"
 ]
+
 
 [tool.hatch.metadata]
 allow-direct-references = true

@@ -160,7 +160,7 @@ test: install-dev ## Run tests with coverage
 	$(PYTHON) -m pytest $(TEST_PATH) $(PYTEST_ARGS) --cov=src --cov-report=term-missing
 
 .PHONY: format
-format: ## Format code with ruff
+format: install-dev ## Format code with ruff
 	@echo "${BLUE}Formatting code...${RESET}"
 	$(PYTHON) -m ruff format .
 

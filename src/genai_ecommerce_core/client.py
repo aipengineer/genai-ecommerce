@@ -1,4 +1,4 @@
-#genai-ecommerce/src/genai_ecommerce_core/client.py
+# genai-ecommerce/src/genai_ecommerce_core/client.py
 """API client for AboutYou e-commerce platform."""
 
 import asyncio
@@ -11,13 +11,13 @@ class AboutYouClient:
     """Client for AboutYou API."""
 
     BASE_URL = "https://api-cloud.aboutyou.de/v1"
-    
+
     def __init__(self) -> None:
         """Initialize client with default headers."""
         self.headers = {
             "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
-                         "AppleWebKit/537.36 (KHTML, like Gecko) "
-                         "Chrome/121.0.0.0 Safari/537.36",
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/121.0.0.0 Safari/537.36",
             "Accept": "application/json",
             "Accept-Language": "en-US,en;q=0.9",
         }
@@ -55,5 +55,5 @@ class AboutYouClient:
             )
             response.raise_for_status()
             await asyncio.sleep(self._rate_limit_delay)
-            
+
             return ProductResponse.model_validate(response.json())
