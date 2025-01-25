@@ -1,3 +1,4 @@
+#genai-ecommerce/src/genai_ecommerce_core/database.py
 """Database models and utilities for the GenAI E-commerce project."""
 
 from datetime import datetime

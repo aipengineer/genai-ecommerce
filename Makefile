@@ -69,6 +69,8 @@ install-ml: ## Install ML package
 
 .PHONY: install-all
 install-all: install-core install-web install-ml ## Install all packages
+	cp pyproject.main.toml pyproject.toml
+	uv pip install -e .
 	@echo "${GREEN}All packages installed successfully${RESET}"
 
 .PHONY: install-dev
@@ -83,6 +85,8 @@ install-dev: ## Install all packages with development dependencies
 	cp pyproject.ml.toml pyproject.toml
 	uv pip install -e ".[dev]"
 	rm pyproject.toml
+	cp pyproject.main.toml pyproject.toml
+	uv pip install -e ".[dev]"
 
 .PHONY: setup
 setup:
@@ -127,6 +131,14 @@ setup:
 	@echo 'warn_unused_ignores = true' >> setup.sh
 	@echo 'warn_return_any = true' >> setup.sh
 	@echo 'strict_optional = true' >> setup.sh
+	@echo '[project.optional-dependencies]' >> setup.sh
+	@echo 'dev = [' >> setup.sh
+	@echo '    "pytest>=7.0.0",' >> setup.sh
+	@echo '    "pytest-cov>=4.1.0",' >> setup.sh
+	@echo '    "ruff>=0.2.0",' >> setup.sh
+	@echo '    "mypy>=1.8.0",' >> setup.sh
+	@echo '    "ipykernel>=6.0.0",' >> setup.sh
+	@echo ']' >> setup.sh
 	@echo 'EOL' >> setup.sh
 	@echo 'make install-all' >> setup.sh
 	@echo 'rm "$$0"' >> setup.sh
