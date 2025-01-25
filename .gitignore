@@ -169,3 +169,23 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+
+# Project specific
+*.db
+*.sqlite
+*.sqlite3
+setup.sh
+pyproject.toml
+pyproject.main.tmp
+/data/images/
+.vscode/
+.DS_Store
+
+# Temporary files
+*.swp
+*.swo
+*~
+
+# UV/ruff
+.ruff_cache/
+.uv/

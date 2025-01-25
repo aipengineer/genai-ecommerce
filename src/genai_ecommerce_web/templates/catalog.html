@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+
+{% block title %}Catalog - GenAI E-commerce{% endblock %}
+
+{% block content %}
+<div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4" id="products-grid">
+    <!-- Products will be loaded dynamically -->
+</div>
+
+<div class="mt-8 flex justify-center">
+    <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
+        <!-- Pagination will be added dynamically -->
+    </nav>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function loadProducts(page = 1) {
+    const response = await fetch(`/api/products?skip=${(page-1)*20}&limit=20`);
+    const data = await response.json();
+    
+    const grid = document.getElementById('products-grid');
+    grid.innerHTML = data.products.map(product => `
+        <div class="bg-white rounded-lg shadow-md overflow-hidden">
+            <img src="${product.images[0]?.local_path || '/static/placeholder.png'}" 
+                 alt="${product.name}"
+                 class="w-full h-64 object-cover">
+            <div class="p-4">
+                <h3 class="text-lg font-semibold">${product.name}</h3>
+                <p class="text-gray-600">${product.brand || ''}</p>
+                <div class="mt-2 flex justify-between items-center">
+                    <span class="text-lg font-bold">
+                        ${product.price.currency} ${product.price.amount}
+                    </span>
+                    <a href="/product/${product.id}" 
+                       class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+                        View
+                    </a>
+                </div>
+            </div>
+        </div>
+    `).join('');
+
+    // Update pagination
+    const totalPages = Math.ceil(data.total / 20);
+    const pagination = document.querySelector('nav');
+    pagination.innerHTML = generatePagination(page, totalPages);
+}
+
+function generatePagination(currentPage, totalPages) {
+    let pages = [];
+    for (let i = 1; i <= totalPages; i++) {
+        if (i === 1 || i === totalPages || (i >= currentPage - 2 && i <= currentPage + 2)) {
+            pages.push(`
+                <button onclick="loadProducts(${i})"
+                        class="relative inline-flex items-center px-4 py-2 border ${currentPage === i ? 'bg-blue-50 border-blue-500 text-blue-600' : 'border-gray-300 bg-white text-gray-700'} text-sm font-medium hover:bg-gray-50">
+                    ${i}
+                </button>
+            `);
+        } else if (pages[pages.length - 1] !== '...') {
+            pages.push('<span class="px-4 py-2">...</span>');
+        }
+    }
+    return pages.join('');
+}
+
+// Load initial products
+loadProducts();
+</script>
+{% endblock %}

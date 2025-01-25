@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+
+{% block title %}Product Detail - GenAI E-commerce{% endblock %}
+
+{% block content %}
+<div class="bg-white shadow-lg rounded-lg overflow-hidden" id="product-detail">
+    <!-- Product detail will be loaded dynamically -->
+</div>
+
+<div class="mt-8">
+    <h2 class="text-2xl font-bold mb-4">Similar Products by Clustering</h2>
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4" id="cluster-recommendations">
+        <!-- Cluster-based recommendations will be loaded dynamically -->
+    </div>
+</div>
+
+<div class="mt-8">
+    <h2 class="text-2xl font-bold mb-4">Similar Products by Embeddings</h2>
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4" id="embedding-recommendations">
+        <!-- Embedding-based recommendations will be loaded dynamically -->
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function loadProduct() {
+    const productId = window.location.pathname.split('/').pop();
+    const response = await fetch(`/api/products/${productId}`);
+    const data = await response.json();
+    
+    const detail = document.getElementById('product-detail');
+    detail.innerHTML = `
+        <div class="md:flex">
+            <div class="md:w-1/2">
+                <img src="${data.product.images[0]?.local_path || '/static/placeholder.png'}" 
+                     alt="${data.product.name}"
+                     class="w-full h-96 object-cover">
+            </div>
+            <div class="md:w-1/2 p-6">
+                <h1 class="text-3xl font-bold">${data.product.name}</h1>
+                <p class="text-gray-600 text-lg mt-2">${data.product.brand || ''}</p>
+                
+                <div class="mt-4">
+                    <h2 class="text-xl font-semibold">Description</h2>
+                    <p class="mt-2 text-gray-600">${data.product.description || 'No description available'}</p>
+                </div>
+                
+                <div class="mt-6">
+                    <span class="text-2xl font-bold">
+                        ${data.product.price.currency} ${data.product.price.amount}
+                    </span>
+                    ${data.product.price.original_amount ? `
+                        <span class="ml-2 line-through text-gray-500">
+                            ${data.product.price.currency} ${data.product.price.original_amount}
+                        </span>
+                        <span class="ml-2 text-red-600">
+                            -${data.product.price.discount_percentage}%
+                        </span>
+                    ` : ''}
+                </div>
+                
+                <div class="mt-6">
+                    <h2 class="text-xl font-semibold">Attributes</h2>
+                    <dl class="mt-2 grid grid-cols-2 gap-4">
+                        ${data.product.attributes.map(attr => `
+                            <div>
+                                <dt class="text-gray-600">${attr.key}</dt>
+                                <dd class="font-semibold">${attr.value}</dd>
+                            </div>
+                        `).join('')}
+                    </dl>
+                </div>
+            </div>
+        </div>
+    `;
+
+    // Load recommendations
+    const recommendationTemplate = recommendations => recommendations.map(product => `
+        <div class="bg-white rounded-lg shadow-md overflow-hidden">
+            <img src="${product.images[0]?.local_path || '/static/placeholder.png'}" 
+                 alt="${product.name}"
+                 class="w-full h-48 object-cover">
+            <div class="p-4">
+                <h3 class="text-lg font-semibold">${product.name}</h3>
+                <p class="text-gray-600">${product.brand || ''}</p>
+                <div class="mt-2 flex justify-between items-center">
+                    <span class="text-lg font-bold">
+                        ${product.price.currency} ${product.price.amount}
+                    </span>
+                    <a href="/product/${product.id}" 
+                       class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+                        View
+                    </a>
+                </div>
+            </div>
+        </div>
+    `).join('');
+
+    document.getElementById('cluster-recommendations').innerHTML = 
+        recommendationTemplate(data.recommendations.cluster || []);
+    document.getElementById('embedding-recommendations').innerHTML = 
+        recommendationTemplate(data.recommendations.embedding || []);
+}
+
+// Load product details
+loadProduct();
+</script>
+{% endblock %}

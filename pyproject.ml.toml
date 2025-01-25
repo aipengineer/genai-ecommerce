@@ -1,0 +1,24 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "genai_ecommerce_ml"
+version = "0.1.0"
+description = "Machine learning components for GenAI E-commerce project"
+requires-python = ">=3.12,<3.13"
+
+dependencies = [
+    "genai_ecommerce_core",
+    "numpy>=1.24.0",
+    "scikit-learn>=1.4.0",
+    "sentence-transformers>=2.3.0",
+    "torch>=2.2.0",
+    "torchvision>=0.17.0",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/genai_ecommerce_ml"]
+
+[tool.hatch.metadata]
+allow-direct-references = true
