@@ -1,8 +1,11 @@
 # src/genai_ecommerce_web/routers/api.py
 from typing import List
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+
 from genai_ecommerce_core.models import Product
+
 from ..dependencies import get_db
 
 router = APIRouter()

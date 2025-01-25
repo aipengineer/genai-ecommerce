@@ -1,13 +1,15 @@
 """Embedding-based recommender system."""
 
-from typing import List, Dict, Any
+from typing import Any, Dict, List
+
+import joblib
 import numpy as np
 from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_similarity
-import joblib
+
+from genai_ecommerce_core.models import Product
 
 from .base import BaseRecommender
-from genai_ecommerce_core.models import Product
 
 
 class EmbeddingRecommender(BaseRecommender):

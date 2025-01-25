@@ -1,7 +1,8 @@
 """Base classes for recommender systems."""
 
 from abc import ABC, abstractmethod
-from typing import List, Dict, Any
+from typing import Any, Dict, List
+
 import numpy as np
 
 from genai_ecommerce_core.models import Product

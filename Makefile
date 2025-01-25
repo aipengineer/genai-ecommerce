@@ -150,6 +150,11 @@ setup:
 run-web: ## Run web application
 	$(PYTHON) -m genai_ecommerce_web
 
+.PHONY: ingest-data
+ingest-data: ## Fetch and store data from AboutYou API
+	@echo "Starting data ingestion..."
+	$(PYTHON) src/genai_ecommerce_core/data_ingestion.py
+
 .PHONY: update
 update: ## Update all dependencies
 	@echo "${BLUE}Updating dependencies...${RESET}"
@@ -163,6 +168,7 @@ test: install-dev ## Run tests with coverage
 format: install-dev ## Format code with ruff
 	@echo "${BLUE}Formatting code...${RESET}"
 	$(PYTHON) -m ruff format .
+	$(PYTHON) -m isort .
 
 .PHONY: lint
 lint: install-dev ## Run linters

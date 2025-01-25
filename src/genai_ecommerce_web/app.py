@@ -1,12 +1,13 @@
 # src/genai_ecommerce_web/app.py
-from fastapi import FastAPI, Request, HTTPException
+from pathlib import Path
+
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from pathlib import Path
 
-from .routers import api
 from .dependencies import get_db
+from .routers import api
 
 app = FastAPI(title="GenAI E-commerce")
 

@@ -1,5 +1,6 @@
 # src/genai_ecommerce_web/__main__.py
 import uvicorn
+
 from .app import app
 
 if __name__ == "__main__":
