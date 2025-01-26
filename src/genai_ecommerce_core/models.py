@@ -59,7 +59,10 @@ class Product(BaseModel):
 
 
 class ProductResponse(BaseModel):
-    """API response for product listing."""
-
-    entities: list[Product]
-    pagination: dict[str, Any]
+    id: int
+    name: str | None = None
+    price: Price | None = None
+    images: list[Image] | None = Field(default_factory=list)
+    categories: list[Category] | None = Field(default_factory=list)
+    created_at: str | None = None
+    updated_at: str | None = None

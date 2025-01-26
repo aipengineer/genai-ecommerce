@@ -18,7 +18,7 @@ SessionLocal = sessionmaker(
 
 async def bulk_insert_products(db: AsyncSession, products: list[dict]) -> None:
     """
-    Bulk insert products into the database.
+    Bulk insert products into the database with data preprocessing.
 
     Args:
         db: The database session.
@@ -33,8 +33,51 @@ async def bulk_insert_products(db: AsyncSession, products: list[dict]) -> None:
         DBProductCategory,
     )
 
+    def preprocess_product_data(product: dict) -> dict:
+        """Preprocess a single product dictionary."""
+        product.setdefault("name", "Unknown")
+        product.setdefault("price", {"amount": 0.0, "currency": "USD"})
+        product.setdefault("images", [])
+        product.setdefault("categories", [])
+        product.setdefault("attributes", [])
+        product.setdefault("created_at", datetime.utcnow())
+        product.setdefault("updated_at", datetime.utcnow())
+
+        # Normalize images
+        product["images"] = [
+            {"url": img.get("url", ""), "type": img.get("type", "standard")}
+            for img in product["images"]
+            if "url" in img
+        ]
+
+        # Normalize categories
+        product["categories"] = [
+            {
+                "id": cat.get("categoryId", 0),
+                "name": cat.get("name", "Unknown"),
+                "parent_id": cat.get("parentId"),
+                "level": cat.get("level", 0),
+                "path": cat.get("path", ""),
+            }
+            for cat in product["categories"]
+        ]
+
+        # Normalize attributes
+        product["attributes"] = [
+            {
+                "key": attr.get("key", ""),
+                "value": attr.get("value", ""),
+                "group": attr.get("group"),
+            }
+            for attr in product["attributes"]
+        ]
+
+        return product
+
     try:
-        for product in products:
+        for raw_product in products:
+            product = preprocess_product_data(raw_product)
+
             # Create a new product record
             db_product = DBProduct(
                 id=product["id"],
@@ -47,38 +90,43 @@ async def bulk_insert_products(db: AsyncSession, products: list[dict]) -> None:
             # Add related price records
             db_price = DBPrice(
                 product_id=product["id"],
-                amount=product["price"],
-                currency="USD",  # Replace with actual currency if available
+                amount=product["price"]["amount"],
+                currency=product["price"]["currency"],
+                original_amount=product["price"].get("original_amount"),
+                discount_percentage=product["price"].get("discount_percentage"),
             )
             db_product.prices.append(db_price)
 
             # Add related category records
-            category_slug = product.get("category")
-            if category_slug:
-                db_category = DBCategory(name=category_slug, path=category_slug)
+            for category in product["categories"]:
+                db_category = DBCategory(
+                    id=category["id"],
+                    name=category["name"],
+                    parent_id=category.get("parent_id"),
+                    level=category["level"],
+                    path=category["path"],
+                )
                 db_product.categories.append(DBProductCategory(category=db_category))
 
             # Add related image records
-            if "images" in product:
-                for image in product["images"]:
-                    db_image = DBImage(
-                        product_id=product["id"],
-                        url=image.get("url"),
-                        type=image.get("type", "standard"),
-                        local_path=image.get("local_path"),
-                    )
-                    db_product.images.append(db_image)
+            for image in product["images"]:
+                db_image = DBImage(
+                    product_id=product["id"],
+                    url=image["url"],
+                    type=image["type"],
+                    local_path=image.get("local_path"),
+                )
+                db_product.images.append(db_image)
 
             # Add related attribute records
-            if "attributes" in product:
-                for attr in product["attributes"]:
-                    db_attribute = DBAttribute(
-                        product_id=product["id"],
-                        key=attr.get("key"),
-                        value=attr.get("value"),
-                        group=attr.get("group"),
-                    )
-                    db_product.attributes.append(db_attribute)
+            for attr in product["attributes"]:
+                db_attribute = DBAttribute(
+                    product_id=product["id"],
+                    key=attr["key"],
+                    value=attr["value"],
+                    group=attr.get("group"),
+                )
+                db_product.attributes.append(db_attribute)
 
             # Add the product to the session
             db.add(db_product)

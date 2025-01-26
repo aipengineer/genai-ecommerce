@@ -3,6 +3,7 @@
 
 import asyncio
 import os
+import subprocess
 from pathlib import Path
 from typing import Any
 
@@ -15,17 +16,13 @@ async def download_image(url: str, local_path: str) -> None:
     """
     Download an image from a URL and save it locally.
     """
-    # Ensure the directory exists
     Path(os.path.dirname(local_path)).mkdir(parents=True, exist_ok=True)
-    try:
-        async with httpx.AsyncClient() as client:
-            response = await client.get(url)
-            response.raise_for_status()
-            with open(local_path, "wb") as f:
-                f.write(response.content)
+    async with httpx.AsyncClient() as client:
+        response = await client.get(url)
+        response.raise_for_status()
+        with open(local_path, "wb") as f:
+            f.write(response.content)
         print(f"Downloaded image to {local_path}")
-    except Exception as error:
-        print(f"Failed to download image {url}: {error}")
 
 
 async def download_image_with_retries(
@@ -33,11 +30,6 @@ async def download_image_with_retries(
 ) -> None:
     """
     Attempt to download an image with retries on failure.
-
-    Args:
-        url: The URL of the image to download.
-        local_path: The local file path where the image will be saved.
-        retries: The number of retry attempts.
     """
     for attempt in range(retries):
         try:
@@ -47,8 +39,8 @@ async def download_image_with_retries(
             if attempt < retries - 1:
                 wait_time = 2**attempt
                 msg = (
-                    f"Retrying image download in {wait_time}s: {url} "
-                    f"(attempt {attempt + 1})"
+                    f"Retrying image download in {wait_time}s: {url}"
+                    f" (attempt {attempt + 1})"
                 )
                 print(msg)
                 await asyncio.sleep(wait_time)
@@ -62,58 +54,90 @@ class AboutYouClient:
     BASE_URL = "https://api-cloud.aboutyou.de/v1"
 
     def __init__(self) -> None:
-        """Initialize client with default headers."""
+        """Initialize client with default headers and persistent session."""
         self.headers = {
-            "User-Agent": (
-                "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
-                "AppleWebKit/537.36 (KHTML, like Gecko) "
-                "Chrome/121.0.0.0 Safari/537.36"
-            ),
-            "Accept": (
-                "text/html,application/xhtml+xml,application/xml;q=0.9,"
-                "image/avif,image/webp,image/apng,*/*;q=0.8,"
-                "application/signed-exchange;v=b3;q=0.9"
-            ),
-            "Accept-Language": "en-US,en;q=0.9",
-            "Accept-Encoding": "gzip, deflate, br",
+            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.2 Safari/605.1.15",
+            "Accept": "application/json",
+            "Accept-Encoding": "gzip, deflate",
+            "Referer": "https://www.aboutyou.de",
             "Connection": "keep-alive",
-            "Referer": "https://www.aboutyou.de/",
-            "Origin": "https://www.aboutyou.de",
-            "Upgrade-Insecure-Requests": "1",
         }
         self._rate_limit_delay = 1.0  # Delay between requests in seconds
+        self.cookies = ""
+
+    async def fetch_initial_cookies(self) -> None:
+        """
+        Perform an initial GET request to the homepage to fetch dynamic cookies.
+        """
+        async with httpx.AsyncClient(headers=self.headers) as client:
+            url = "https://en.aboutyou.de/your-shop"
+            response = await client.get(url)
+            response.raise_for_status()
+            # Extract the freshest cookie
+            self.cookies = "; ".join(
+                [f"{cookie.name}={cookie.value}" for cookie in client.cookies.jar]
+            )
+            print(f"Fetched cookies: {self.cookies}")
+
+    def get_products_with_curl(
+        self, page: int, with_attributes: str | None = None
+    ) -> str:
+        """
+        Use curl to fetch products from the API with the dynamic cookie.
+        """
+        # Construct the curl command
+        command = [
+            "curl",
+            "-X",
+            "GET",
+            f"{self.BASE_URL}/products?with={with_attributes or 'categories,priceRange'}&page={page}",
+            "-H",
+            f"User-Agent: {self.headers['User-Agent']}",
+            "-H",
+            "Accept: application/json",
+            "-H",
+            "Accept-Encoding: gzip, deflate",
+            "-H",
+            f"Referer: {self.headers['Referer']}",
+            "-H",
+            "Connection: keep-alive",
+            "-H",
+            f"Cookie: {self.cookies}",
+            "--compressed",
+        ]
+
+        # Debug: Print the curl command
+        print(f"Executing command: {' '.join(command)}")
+
+        # Execute the command
+        result = subprocess.run(command, capture_output=True, text=True)
+
+        if result.returncode != 0:
+            raise RuntimeError(f"Curl request failed: {result.stderr}")
+
+        return result.stdout
 
     async def get_products(
         self,
         with_attributes: str | None = None,
-        page: int = 1,  # Page-based pagination
+        page: int = 1,
         filters: dict[str, Any] | None = None,
     ) -> ProductResponse:
         """
-        Fetch products from the API.
-
-        Args:
-            with_attributes: Comma-separated list of attributes to include.
-            page: Page number to fetch.
-            filters: Additional filters to apply.
-
-        Returns:
-            ProductResponse object containing products and pagination info.
+        Fetch products from the API using curl and a fresh cookie.
         """
-        params = {
-            "with": with_attributes or "categories,priceRange",
-            "page": page,  # Use page-based pagination
-        }
-        if filters:
-            for key, value in filters.items():
-                params[f"filters[{key}]"] = value
+        # Ensure cookies are fresh
+        await self.fetch_initial_cookies()
 
-        async with httpx.AsyncClient(headers=self.headers) as client:
-            response = await client.get(
-                f"{self.BASE_URL}/products",
-                params=params,
-            )
-            response.raise_for_status()
-            await asyncio.sleep(self._rate_limit_delay)
+        # Fetch products using curl
+        response_json = self.get_products_with_curl(
+            page=page, with_attributes=with_attributes
+        )
+        print(f"Response JSON (limited): {response_json[:500]}")
 
-            return ProductResponse.model_validate(response.json())
+        # Parse and return the product response
+        return ProductResponse.model_validate_json(response_json)
+
+    async def close(self) -> None:
+        """Close the HTTP client session."""
+        pass  # No persistent session to close since we use subprocess for curl
