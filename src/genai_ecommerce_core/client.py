@@ -64,18 +64,29 @@ class AboutYouClient:
     def __init__(self) -> None:
         """Initialize client with default headers."""
         self.headers = {
-            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
-            "AppleWebKit/537.36 (KHTML, like Gecko) "
-            "Chrome/121.0.0.0 Safari/537.36",
-            "Accept": "application/json",
+            "User-Agent": (
+                "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) "
+                "Chrome/121.0.0.0 Safari/537.36"
+            ),
+            "Accept": (
+                "text/html,application/xhtml+xml,application/xml;q=0.9,"
+                "image/avif,image/webp,image/apng,*/*;q=0.8,"
+                "application/signed-exchange;v=b3;q=0.9"
+            ),
             "Accept-Language": "en-US,en;q=0.9",
+            "Accept-Encoding": "gzip, deflate, br",
+            "Connection": "keep-alive",
+            "Referer": "https://www.aboutyou.de/",
+            "Origin": "https://www.aboutyou.de",
+            "Upgrade-Insecure-Requests": "1",
         }
         self._rate_limit_delay = 1.0  # Delay between requests in seconds
 
     async def get_products(
         self,
         with_attributes: str | None = None,
-        limit: int = 100,
+        page: int = 1,  # Page-based pagination
         filters: dict[str, Any] | None = None,
     ) -> ProductResponse:
         """
@@ -83,7 +94,7 @@ class AboutYouClient:
 
         Args:
             with_attributes: Comma-separated list of attributes to include.
-            limit: Number of products to fetch.
+            page: Page number to fetch.
             filters: Additional filters to apply.
 
         Returns:
@@ -91,7 +102,7 @@ class AboutYouClient:
         """
         params = {
             "with": with_attributes or "categories,priceRange",
-            "limit": limit,
+            "page": page,  # Use page-based pagination
         }
         if filters:
             for key, value in filters.items():

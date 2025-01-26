@@ -3,20 +3,24 @@ import asyncio
 from contextlib import asynccontextmanager
 from pathlib import Path
 
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from genai_ecommerce_core.client import AboutYouClient, download_image_with_retries
 from genai_ecommerce_core.database import bulk_insert_products, init_db
 
 
 @asynccontextmanager
-async def get_db() -> None:
+async def get_db() -> AsyncSession:
     """
     Async context manager to initialize and close the database session.
     """
-    db = await init_db("sqlite:///ecommerce.db")
-    try:
-        yield db
-    finally:
-        db.close()
+    db_url = "sqlite+aiosqlite:///ecommerce.db"
+    session_maker = await init_db(db_url)
+    async with session_maker() as db:
+        try:
+            yield db
+        finally:
+            await db.close()
 
 
 async def ingest_data() -> None:
@@ -30,13 +34,18 @@ async def ingest_data() -> None:
         while True:
             try:
                 print(f"Fetching page {page}...")
-                response = await client.get_products(limit=100, page=page)
+                response = await client.get_products(page=page)
+
+                # Exit loop if there are no more products
                 if not response.entities:
                     print("No more products to process. Exiting.")
                     break
 
                 products = []
+
+                # Process each product in the response
                 for product in response.entities:
+                    # Skip products without categories
                     if not product.get("categories") or not product["categories"][0]:
                         msg = (
                             f"Skipping product {product['id']}"
@@ -45,18 +54,17 @@ async def ingest_data() -> None:
                         print(msg)
                         continue
 
+                    # Extract and transform product data
                     product_data = {
                         "id": product["id"],
                         "name": product["name"],
                         "description": product.get("description"),
                         "price": product["priceRange"]["min"]["withTax"] / 100.0,
-                        "category": product["categories"][0][0][
-                            "categorySlug"
-                        ],  # Use the first slug
+                        "category": product["categories"][0][0]["categorySlug"],
                     }
                     products.append(product_data)
 
-                    # Download images
+                    # Download and save product images
                     if product.get("images"):
                         for image in product["images"]:
                             image_url = f"https://cdn.aboutyou.com/{image['hash']}"
@@ -64,14 +72,18 @@ async def ingest_data() -> None:
                                 f"data/images/{product_data['category']}/"
                                 f"{image['hash'].split('/')[-1]}"
                             )
-                            if not Path(local_image_path).exists():
-                                await download_image_with_retries(
-                                    image_url, local_image_path
-                                )
-                            else:
-                                print(f"Image already exists: {local_image_path}")
 
-                bulk_insert_products(db, products)
+                            # Skip download if the image already exists
+                            if Path(local_image_path).exists():
+                                print(f"Image already exists: {local_image_path}")
+                                continue
+
+                            await download_image_with_retries(
+                                image_url, local_image_path
+                            )
+
+                # Insert products into the database
+                await bulk_insert_products(db, products)
                 print(f"Page {page}: Inserted {len(products)} products.")
                 page += 1
 
