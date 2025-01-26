@@ -23,6 +23,12 @@ allow-direct-references = true
 line-length = 88
 target-version = "py312"
 
+[tool.isort]
+profile = "black"
+line_length = 88
+known_first_party = ["genai_ecommerce_core", "genai_ecommerce_ml", "genai_ecommerce_web"]
+
+
 [tool.ruff.lint]
 select = ["E", "W", "F", "I", "C", "B", "UP", "N", "ANN", "S", "A"]
 
@@ -51,4 +57,5 @@ dev = [
     "ruff>=0.2.0",
     "mypy>=1.8.0",
     "ipykernel>=6.0.0",
+    "isort",
 ]

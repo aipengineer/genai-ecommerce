@@ -2,7 +2,8 @@
 """Core data models for the GenAI E-commerce project."""
 
 from datetime import datetime
-from typing import List, Optional, Dict, Any
+from typing import Any
+
 from pydantic import BaseModel, Field
 
 
@@ -11,8 +12,8 @@ class Price(BaseModel):
 
     amount: float
     currency: str
-    original_amount: Optional[float] = None
-    discount_percentage: Optional[float] = None
+    original_amount: float | None = None
+    discount_percentage: float | None = None
 
 
 class Attribute(BaseModel):
@@ -20,7 +21,7 @@ class Attribute(BaseModel):
 
     key: str
     value: str
-    group: Optional[str] = None
+    group: str | None = None
 
 
 class Category(BaseModel):
@@ -28,7 +29,7 @@ class Category(BaseModel):
 
     id: int
     name: str
-    parent_id: Optional[int] = None
+    parent_id: int | None = None
     level: int = Field(default=0)
     path: str
 
@@ -38,7 +39,7 @@ class Image(BaseModel):
 
     url: str
     type: str = Field(default="standard")
-    local_path: Optional[str] = None
+    local_path: str | None = None
 
 
 class Product(BaseModel):
@@ -46,19 +47,19 @@ class Product(BaseModel):
 
     id: int
     name: str
-    description: Optional[str] = None
-    brand: Optional[str] = None
+    description: str | None = None
+    brand: str | None = None
     price: Price
-    images: List[Image] = Field(default_factory=list)
-    categories: List[Category] = Field(default_factory=list)
-    attributes: List[Attribute] = Field(default_factory=list)
+    images: list[Image] = Field(default_factory=list)
+    categories: list[Category] = Field(default_factory=list)
+    attributes: list[Attribute] = Field(default_factory=list)
     created_at: datetime
     updated_at: datetime
-    raw_data: Dict[str, Any] = Field(default_factory=dict)
+    raw_data: dict[str, Any] = Field(default_factory=dict)
 
 
 class ProductResponse(BaseModel):
     """API response for product listing."""
 
-    entities: List[Product]
-    pagination: Dict[str, Any]
+    entities: list[Product]
+    pagination: dict[str, Any]

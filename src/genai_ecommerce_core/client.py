@@ -2,9 +2,58 @@
 """API client for AboutYou e-commerce platform."""
 
 import asyncio
-from typing import Dict, Any, Optional
+import os
+from pathlib import Path
+from typing import Any
+
 import httpx
+
 from .models import ProductResponse
+
+
+async def download_image(url: str, local_path: str) -> None:
+    """
+    Download an image from a URL and save it locally.
+    """
+    # Ensure the directory exists
+    Path(os.path.dirname(local_path)).mkdir(parents=True, exist_ok=True)
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.get(url)
+            response.raise_for_status()
+            with open(local_path, "wb") as f:
+                f.write(response.content)
+        print(f"Downloaded image to {local_path}")
+    except Exception as error:
+        print(f"Failed to download image {url}: {error}")
+
+
+async def download_image_with_retries(
+    url: str, local_path: str, retries: int = 3
+) -> None:
+    """
+    Attempt to download an image with retries on failure.
+
+    Args:
+        url: The URL of the image to download.
+        local_path: The local file path where the image will be saved.
+        retries: The number of retry attempts.
+    """
+    for attempt in range(retries):
+        try:
+            await download_image(url, local_path)
+            return
+        except Exception:
+            if attempt < retries - 1:
+                wait_time = 2**attempt
+                msg = (
+                    f"Retrying image download in {wait_time}s: {url} "
+                    f"(attempt {attempt + 1})"
+                )
+                print(msg)
+                await asyncio.sleep(wait_time)
+            else:
+                print(f"Failed to download image after {retries} attempts: {url}")
 
 
 class AboutYouClient:
@@ -25,20 +74,20 @@ class AboutYouClient:
 
     async def get_products(
         self,
-        with_attributes: Optional[str] = None,
+        with_attributes: str | None = None,
         limit: int = 100,
-        filters: Optional[Dict[str, Any]] = None,
+        filters: dict[str, Any] | None = None,
     ) -> ProductResponse:
         """
         Fetch products from the API.
 
         Args:
-            with_attributes: Comma-separated list of attributes to include
-            limit: Number of products to fetch
-            filters: Additional filters to apply
+            with_attributes: Comma-separated list of attributes to include.
+            limit: Number of products to fetch.
+            filters: Additional filters to apply.
 
         Returns:
-            ProductResponse object containing products and pagination info
+            ProductResponse object containing products and pagination info.
         """
         params = {
             "with": with_attributes or "categories,priceRange",

@@ -2,21 +2,26 @@
 """Database models and utilities for the GenAI E-commerce project."""
 
 from datetime import datetime
-from typing import Optional
-from sqlalchemy import (
-    create_engine,
-    Column,
-    Integer,
-    String,
-    Float,
-    DateTime,
-    ForeignKey,
-    JSON,
-)
+
+from sqlalchemy import JSON, Column, DateTime, Float, ForeignKey, Integer, String
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, sessionmaker
 
 Base = declarative_base()
+
+
+engine = create_async_engine("sqlite+aiosqlite:///ecommerce.db", echo=True)
+SessionLocal = sessionmaker(
+    autocommit=False, autoflush=False, bind=engine, class_=AsyncSession
+)
+
+
+async def init_db() -> sessionmaker:
+    """Create all tables and return the session maker."""
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    return SessionLocal
 
 
 class DBProduct(Base):
@@ -113,9 +118,3 @@ class DBImage(Base):
 
     # Relationships
     product = relationship("DBProduct", back_populates="images")
-
-
-async def init_db(database_url: str) -> None:
-    """Initialize database schema."""
-    engine = create_engine(database_url)
-    Base.metadata.create_all(engine)

@@ -1,21 +1,22 @@
+# genai-ecommerce/src/genai_ecommerce_ml/embeddings.py
 """Embedding-based recommender system."""
 
-from typing import List, Dict, Any
+import joblib
 import numpy as np
 from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_similarity
-import joblib
+
+from genai_ecommerce_core.models import Product
 
 from .base import BaseRecommender
-from genai_ecommerce_core.models import Product
 
 
 class EmbeddingRecommender(BaseRecommender):
     """Product recommender using text and image embeddings."""
 
-    def __init__(self, model_name: str = "all-MiniLM-L6-v2"):
+    def __init__(self, model_name: str = "all-MiniLM-L6-v2") -> None:
         self.text_model = SentenceTransformer(model_name)
-        self.products: List[Product] = []
+        self.products: list[Product] = []
         self.embeddings: np.ndarray = None
 
     def _get_product_text(self, product: Product) -> str:
@@ -29,7 +30,7 @@ class EmbeddingRecommender(BaseRecommender):
         ]
         return " ".join(text_parts)
 
-    async def fit(self, products: List[Product]) -> None:
+    async def fit(self, products: list[Product]) -> None:
         """Generate embeddings for all products."""
         self.products = products
         texts = [self._get_product_text(p) for p in products]
@@ -37,7 +38,7 @@ class EmbeddingRecommender(BaseRecommender):
 
     async def recommend(
         self, product: Product, n_recommendations: int = 5
-    ) -> List[Product]:
+    ) -> list[Product]:
         """Get recommendations based on embedding similarity."""
         text = self._get_product_text(product)
         query_embedding = self.text_model.encode([text], convert_to_tensor=True)
