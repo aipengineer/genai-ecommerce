@@ -1,7 +1,8 @@
 # src/genai_ecommerce_web/routers/api.py
 
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
 
 from genai_ecommerce_core.models import Product
 
@@ -15,7 +16,7 @@ get_db_dependency = Depends(get_db)
 
 @router.get("/products", response_model=list[Product])
 async def get_products(
-    skip: int = 0, limit: int = 20, db: Session = get_db_dependency
+    skip: int = 0, limit: int = 20, db: AsyncSession = get_db_dependency
 ) -> list[Product]:
     """
     Fetch a list of products with pagination.
@@ -29,14 +30,15 @@ async def get_products(
         A list of products.
     """
     try:
-        products = await db.query(Product).offset(skip).limit(limit).all()
+        result = await db.execute(select(Product).offset(skip).limit(limit))
+        products = result.scalars().all()
         return products
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.get("/products/{product_id}", response_model=Product)
-async def get_product(product_id: int, db: Session = get_db_dependency) -> Product:
+async def get_product(product_id: int, db: AsyncSession = get_db_dependency) -> Product:
     """
     Fetch a single product by its ID.
 
@@ -51,8 +53,9 @@ async def get_product(product_id: int, db: Session = get_db_dependency) -> Produ
         HTTPException: If the product is not found or an error occurs.
     """
     try:
-        product = await db.query(Product).filter(Product.id == product_id).first()
-        if product is None:
+        result = await db.execute(select(Product).filter(Product.id == product_id))
+        product = result.scalars().first()
+        if not product:
             raise HTTPException(status_code=404, detail="Product not found")
         return product
     except Exception as e:
