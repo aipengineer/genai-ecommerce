@@ -3,12 +3,19 @@
 {% block title %}Catalog - GenAI E-commerce{% endblock %}
 
 {% block content %}
-<div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4" id="products-grid">
-    <!-- Products will be loaded dynamically -->
+<div id="products-grid-container">
+    <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4" id="products-grid">
+        <!-- Products will be loaded dynamically -->
+    </div>
+
+    <div id="no-products-message" class="text-center text-gray-500 mt-12 hidden">
+        <p class="text-lg">No products found in the database.</p>
+        <p>Try adding some products to the database to see them here.</p>
+    </div>
 </div>
 
 <div class="mt-8 flex justify-center">
-    <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
+    <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" id="pagination-container">
         <!-- Pagination will be added dynamically -->
     </nav>
 </div>
@@ -19,33 +26,44 @@
 async function loadProducts(page = 1) {
     const response = await fetch(`/api/products?skip=${(page-1)*20}&limit=20`);
     const data = await response.json();
-    
+
     const grid = document.getElementById('products-grid');
-    grid.innerHTML = data.products.map(product => `
-        <div class="bg-white rounded-lg shadow-md overflow-hidden">
-            <img src="${product.images[0]?.local_path || '/static/placeholder.png'}" 
-                 alt="${product.name}"
-                 class="w-full h-64 object-cover">
-            <div class="p-4">
-                <h3 class="text-lg font-semibold">${product.name}</h3>
-                <p class="text-gray-600">${product.brand || ''}</p>
-                <div class="mt-2 flex justify-between items-center">
-                    <span class="text-lg font-bold">
-                        ${product.price.currency} ${product.price.amount}
-                    </span>
-                    <a href="/product/${product.id}" 
-                       class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
-                        View
-                    </a>
+    const noProductsMessage = document.getElementById('no-products-message');
+    const paginationContainer = document.getElementById('pagination-container');
+
+    if (data.length === 0) {
+        grid.innerHTML = '';
+        noProductsMessage.classList.remove('hidden');
+        paginationContainer.classList.add('hidden');
+    } else {
+        noProductsMessage.classList.add('hidden');
+        paginationContainer.classList.remove('hidden');
+
+        grid.innerHTML = data.map(product => `
+            <div class="bg-white rounded-lg shadow-md overflow-hidden">
+                <img src="${product.images[0]?.local_path || '/static/placeholder.png'}" 
+                     alt="${product.name}"
+                     class="w-full h-64 object-cover">
+                <div class="p-4">
+                    <h3 class="text-lg font-semibold">${product.name}</h3>
+                    <p class="text-gray-600">${product.brand || ''}</p>
+                    <div class="mt-2 flex justify-between items-center">
+                        <span class="text-lg font-bold">
+                            ${product.price.currency} ${product.price.amount}
+                        </span>
+                        <a href="/product/${product.id}" 
+                           class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+                            View
+                        </a>
+                    </div>
                 </div>
             </div>
-        </div>
-    `).join('');
+        `).join('');
 
-    // Update pagination
-    const totalPages = Math.ceil(data.total / 20);
-    const pagination = document.querySelector('nav');
-    pagination.innerHTML = generatePagination(page, totalPages);
+        // Update pagination
+        const totalPages = Math.ceil(data.total / 20);
+        paginationContainer.innerHTML = generatePagination(page, totalPages);
+    }
 }
 
 function generatePagination(currentPage, totalPages) {
