@@ -1,7 +1,6 @@
 # src/genai_ecommerce_web/dependencies.py
-from typing import Generator
+from collections.abc import Generator
 
-from fastapi import Depends
 from sqlalchemy.orm import Session
 
 from genai_ecommerce_core.database import init_db

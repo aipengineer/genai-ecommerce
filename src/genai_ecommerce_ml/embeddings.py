@@ -14,7 +14,7 @@ from .base import BaseRecommender
 class EmbeddingRecommender(BaseRecommender):
     """Product recommender using text and image embeddings."""
 
-    def __init__(self, model_name: str = "all-MiniLM-L6-v2"):
+    def __init__(self, model_name: str = "all-MiniLM-L6-v2") -> None:
         self.text_model = SentenceTransformer(model_name)
         self.products: list[Product] = []
         self.embeddings: np.ndarray = None
