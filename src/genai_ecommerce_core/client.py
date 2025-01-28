@@ -9,7 +9,7 @@ from typing import Any
 
 import httpx
 
-from .models import ProductResponse
+from .models import ApiResponse
 
 
 async def download_image(url: str, local_path: str) -> None:
@@ -122,7 +122,7 @@ class AboutYouClient:
         with_attributes: str | None = None,
         page: int = 1,
         filters: dict[str, Any] | None = None,
-    ) -> ProductResponse:
+    ) -> ApiResponse:
         """
         Fetch products from the API using curl and a fresh cookie.
         """
@@ -135,8 +135,8 @@ class AboutYouClient:
         )
         print(f"Response JSON (limited): {response_json[:500]}")
 
-        # Parse and return the product response
-        return ProductResponse.model_validate_json(response_json)
+        # Parse and return the API response
+        return ApiResponse.model_validate_json(response_json)
 
     async def close(self) -> None:
         """Close the HTTP client session."""

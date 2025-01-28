@@ -66,3 +66,26 @@ class ProductResponse(BaseModel):
     categories: list[Category] | None = Field(default_factory=list)
     created_at: str | None = None
     updated_at: str | None = None
+
+
+class PaginationResponse(BaseModel):
+    """Pagination information from API response."""
+
+    current: int
+    total: int
+    per_page: int = Field(alias="perPage")  # Use Field with alias for API compatibility
+    page: int
+    first: int
+    prev: int
+    next: int
+    last: int
+
+    class Config:
+        populate_by_name = True
+
+
+class ApiResponse(BaseModel):
+    """Full API response structure."""
+
+    pagination: PaginationResponse
+    entities: list[dict[str, Any]]

@@ -2,7 +2,7 @@
 
 from datetime import datetime
 from enum import Enum
-from typing import Any, Optional
+from typing import Any
 
 from pydantic import BaseModel, Field
 from sqlalchemy import (
@@ -10,15 +10,18 @@ from sqlalchemy import (
     TIMESTAMP,
     Boolean,
     Column,
-    Enum as SQLAlchemyEnum,
-    ForeignKey,
+)
+from sqlalchemy import Enum as SQLAlchemyEnum
+from sqlalchemy import (
     Index,
     Integer,
     LargeBinary,
-    String,
     Text,
+    select,
+    text,
+    update,
 )
-from sqlalchemy.orm import relationship
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from .database import Base
 
@@ -58,6 +61,7 @@ class BatchStatus(str, Enum):
 
 
 # SQLAlchemy Models
+# In raw_models.py
 class RawProduct(Base):
     """Raw product data storage."""
 
@@ -66,12 +70,8 @@ class RawProduct(Base):
     id = Column(Integer, primary_key=True)
     raw_data = Column(JSON, nullable=False)
     updated_at = Column(TIMESTAMP(timezone=True), nullable=False)
-    created_at = Column(
-        TIMESTAMP(timezone=True), nullable=False, server_default="CURRENT_TIMESTAMP"
-    )
-    last_seen_at = Column(
-        TIMESTAMP(timezone=True), nullable=False, server_default="CURRENT_TIMESTAMP"
-    )
+    created_at = Column(TIMESTAMP(timezone=True), nullable=False)
+    last_seen_at = Column(TIMESTAMP(timezone=True), nullable=False)
     is_deleted = Column(Boolean, nullable=False, default=False)
     processing_status = Column(
         SQLAlchemyEnum(ProcessingStatus),
@@ -97,8 +97,9 @@ class IngestionMetadata(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     started_at = Column(
-        TIMESTAMP(timezone=True), nullable=False, server_default="CURRENT_TIMESTAMP"
-    )
+        TIMESTAMP(timezone=True),
+        nullable=False,
+    )  # Remove server_default
     completed_at = Column(TIMESTAMP(timezone=True))
     total_pages = Column(Integer, nullable=False)
     current_page = Column(Integer, nullable=False)
@@ -117,7 +118,9 @@ class ProcessingBatch(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     started_at = Column(
-        TIMESTAMP(timezone=True), nullable=False, server_default="CURRENT_TIMESTAMP"
+        TIMESTAMP(timezone=True),
+        nullable=False,
+        server_default=text("CURRENT_TIMESTAMP"),
     )
     completed_at = Column(TIMESTAMP(timezone=True))
     batch_type = Column(SQLAlchemyEnum(BatchType), nullable=False)
@@ -143,14 +146,14 @@ class RawProductCreate(BaseModel):
 class RawProductUpdate(BaseModel):
     """Schema for updating a raw product."""
 
-    raw_data: Optional[dict[str, Any]] = None
-    updated_at: Optional[datetime] = None
-    last_seen_at: Optional[datetime] = None
-    is_deleted: Optional[bool] = None
-    processing_status: Optional[ProcessingStatus] = None
-    processing_error: Optional[str] = None
-    processed_at: Optional[datetime] = None
-    embedding_vector: Optional[bytes] = None
+    raw_data: dict[str, Any] | None = None
+    updated_at: datetime | None = None
+    last_seen_at: datetime | None = None
+    is_deleted: bool | None = None
+    processing_status: ProcessingStatus | None = None
+    processing_error: str | None = None
+    processed_at: datetime | None = None
+    embedding_vector: bytes | None = None
 
 
 class RawProductResponse(BaseModel):
@@ -162,8 +165,8 @@ class RawProductResponse(BaseModel):
     last_seen_at: datetime
     is_deleted: bool
     processing_status: ProcessingStatus
-    processing_error: Optional[str] = None
-    processed_at: Optional[datetime] = None
+    processing_error: str | None = None
+    processed_at: datetime | None = None
     has_embedding: bool = Field(default=False)
 
     class Config:
@@ -183,10 +186,10 @@ class IngestionMetadataCreate(BaseModel):
 class IngestionMetadataUpdate(BaseModel):
     """Schema for updating ingestion metadata."""
 
-    current_page: Optional[int] = None
-    completed_at: Optional[datetime] = None
-    status: Optional[IngestionStatus] = None
-    error_message: Optional[str] = None
+    current_page: int | None = None
+    completed_at: datetime | None = None
+    status: IngestionStatus | None = None
+    error_message: str | None = None
 
 
 class ProcessingBatchCreate(BaseModel):
@@ -200,23 +203,23 @@ class ProcessingBatchCreate(BaseModel):
 class ProcessingBatchUpdate(BaseModel):
     """Schema for updating a processing batch."""
 
-    completed_at: Optional[datetime] = None
-    status: Optional[BatchStatus] = None
-    products_processed: Optional[int] = None
-    error_message: Optional[str] = None
+    completed_at: datetime | None = None
+    status: BatchStatus | None = None
+    products_processed: int | None = None
+    error_message: str | None = None
 
 
 # Helper functions
 async def upsert_raw_product(
-    db_session, product_data: RawProductCreate
+    db_session: AsyncSession, product_data: RawProductCreate
 ) -> RawProduct:
     """
     Insert or update a raw product in the database.
-    
+
     Args:
         db_session: The database session
         product_data: The product data to upsert
-        
+
     Returns:
         The upserted RawProduct instance
     """
@@ -240,9 +243,9 @@ async def upsert_raw_product(
         )
         await db_session.refresh(existing_product)
         return existing_product
-    else:
-        # Create new product
-        new_product = RawProduct(**product_data.model_dump())
-        db_session.add(new_product)
-        await db_session.flush()
-        return new_product
+
+    # Create new product
+    new_product = RawProduct(**product_data.model_dump())
+    db_session.add(new_product)
+    await db_session.flush()
+    return new_product
