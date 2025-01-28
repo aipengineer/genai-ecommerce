@@ -31,17 +31,43 @@ Visit http://localhost:8000
 ## Project Structure
 
 ```
-src/
-├── genai_ecommerce_core/    # Core functionality
-│   ├── client.py           # API client
-│   ├── database.py         # SQLite models
-│   └── models.py          # Pydantic models
-├── genai_ecommerce_ml/     # ML components
-│   ├── clustering.py      # Classic recommendations
-│   └── embeddings.py      # Vector embeddings
-└── genai_ecommerce_web/    # Web interface
-    ├── app.py            # FastAPI application
-    └── templates/        # Jinja2 templates
+
+├── LICENSE
+├── Makefile
+├── README.md
+├── ecommerce.db
+├── pyproject.core.toml
+├── pyproject.main.toml
+├── pyproject.ml.toml
+├── pyproject.toml
+├── pyproject.web.toml
+└── src
+    ├── genai_ecommerce_core
+    │   ├── __init__.py
+    │   ├── client.py
+    │   ├── data_ingestion.py
+    │   ├── database.py
+    │   └── models.py
+    ├── genai_ecommerce_ml
+    │   ├── __init__.py
+    │   ├── base.py
+    │   ├── clustering.py
+    │   └── embeddings.py
+    └── genai_ecommerce_web
+        ├── __init__.py
+        ├── __main__.py
+        ├── app.py
+        ├── dependencies.py
+        ├── routers
+        │   ├── __init__.py
+        │   └── api.py
+        ├── static
+        │   └── .gitkeep
+        └── templates
+            ├── base.html
+            ├── catalog.html
+            └── product.html
+
 ```
 
 ## Development
